@@ -10,6 +10,7 @@ import {
   resolveClaudeCodeExecutable,
 } from "./executable-path.js";
 import { log } from "./log.js";
+import { userMessageSender, type UserMessageSender } from "./steering-delivery.js";
 
 type SdkModule = typeof import("@anthropic-ai/claude-agent-sdk");
 
@@ -139,6 +140,8 @@ export type ClaudeQueryHandle = {
   interrupt: () => Promise<void>;
   close: () => void;
   getPid: () => number | null | undefined;
+  /** Local (steering-delivery.ts): write a user message to the running CLI. */
+  sendUserMessage?: UserMessageSender;
   /**
    * Stop the turn the way Claude Code's own Esc does: interrupt, let the CLI
    * write the interruption to the transcript, then close. Resolves once the
@@ -262,6 +265,7 @@ export function withGracefulStop(handle: ClaudeQueryHandle): StoppableClaudeQuer
     interrupt: handle.interrupt,
     close,
     getPid: handle.getPid,
+    sendUserMessage: handle.sendUserMessage,
     stop,
     onEvent: (listener) => {
       listeners.push(listener);
@@ -549,6 +553,7 @@ export async function startClaudeQuery(
     interrupt,
     close,
     getPid,
+    sendUserMessage: userMessageSender(result),
   });
 }
 

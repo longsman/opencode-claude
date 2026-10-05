@@ -99,6 +99,7 @@ import {
   type McpToolResultContent,
   type SdkUserPrompt,
 } from "./prompt.js";
+import { deliverSteering } from "./steering-delivery.js";
 import {
   detectMetaRequestKind,
   metaSystemPrompt,
@@ -854,11 +855,23 @@ async function handleChatCompletions(
     );
     const steeringToolId =
       steering.length > 0 ? resolvable.at(-1) : undefined;
+    // Local (steering-delivery.ts): the messages go to Claude as user input,
+    // before the tool results. Only what cannot be sent that way still rides
+    // the tool result. Marked forwarded first, so a second request arriving
+    // during the write cannot send them again.
+    let ridingSteering = steering;
+    if (steeringToolId) {
+      for (const m of freshSteering) existing.forwardedSteering.add(m.key);
+      ridingSteering = await deliverSteering(
+        existing.handle,
+        freshSteering.map((m) => m.blocks),
+      );
+    }
     for (const [toolId, tool] of existing.pendingTools) {
       const result = toolResults.get(toolId);
       if (result !== undefined) {
         tool.resolve(
-          toolId === steeringToolId ? withSteering(result, steering) : result,
+          toolId === steeringToolId ? withSteering(result, ridingSteering) : result,
         );
         existing.pendingTools.delete(toolId);
         resolved++;
