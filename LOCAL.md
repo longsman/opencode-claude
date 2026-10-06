@@ -1,7 +1,7 @@
 # Local build
 
-This checkout is upstream `openchamber/opencode-claude` at tag `v1.3.0` plus
-three commits on the branch `local/steering`. Nothing here is meant to go
+This checkout is upstream `openchamber/opencode-claude` at tag `v1.3.7` plus
+two commits on the branch `local/steering`. Nothing here is meant to go
 upstream; pushing is disabled (`git remote get-url --push origin` prints
 `no_push`).
 
@@ -13,9 +13,8 @@ OpenCode v2 loads it through the `plugins` entry
 ## What the commits change
 
 1. **Pin the Agent SDK and zod** to the versions the npm install of 1.3.0
-   resolved on this machine (0.3.285 and 4.6.5). An unmodified build of this
-   tag is byte-identical to the published 1.3.0 `dist/`, so with the pin the
-   only differences from the plugin that ran before are commits 2 and 3.
+   resolved on this machine (0.3.285 and 4.6.5), which upstream's ranges
+   (`^0.3.224`, `^4.4.3`) still allow. `node_modules` has not changed since.
 2. **Deliver mid-turn messages to Claude as user input.** A message sent
    while a tool runs used to be appended to the tool result, where Claude
    treats it as untrusted and does not act on it. It is now written to the
@@ -28,12 +27,6 @@ OpenCode v2 loads it through the `plugins` entry
      `Local (steering-delivery.ts)`, that calls `deliverSteering`.
    - `test/steering-delivery-regression.ts`: its test. Upstream's tests are
      untouched and still pass.
-3. **Upstream's fix for the "third-party app" refusal**, cherry-picked from
-   v1.3.3 (`917b293`, upstream issue #33). In 1.3.0 the bridge copied
-   OpenCode's system prompt into Claude's from `# Code Mode` to the next
-   `# ` heading. Without such a heading that reached OpenCode's environment
-   block, and Anthropic refused the request with `400 Third-party apps now
-   draw from your extra usage`. The copy now ends with the tool list.
 
 ## Rebuild
 
@@ -42,13 +35,16 @@ bun install && bun run build && bun run test
 ```
 
 `dist/` is not tracked, and OpenCode reads `dist/`. After a rebuild, restart
-the OpenCode server so it imports the new files.
+the OpenCode server so it imports the new files. The restart ends every
+running session. From inside an OpenCode session, schedule it with
+`systemd-run --user`: a command started by the session is in the service's
+control group and dies with it.
 
 ## Move to a newer upstream
 
 ```bash
 git fetch --tags origin
-git rebase --onto vX.Y.Z v1.3.0 local/steering
+git rebase --onto vX.Y.Z v1.3.7 local/steering
 bun install && bun run build && bun run test
 ```
 
@@ -57,10 +53,14 @@ bun install && bun run build && bun run test
 - The steering commit can only conflict in its two hook-ins. If upstream
   reworks steering itself, drop the `proxy.ts` block: without it nothing
   calls `deliverSteering` and the build behaves as upstream does.
-- The cherry-picked commit is already in v1.3.3 and later; the rebase drops
-  it by itself.
-- Checked on 2026-10-05: the two local commits apply cleanly to `v1.3.6` and
-  all its tests pass.
+- Moved from `v1.3.0` to `v1.3.7` on 2026-10-06 for upstream's compaction
+  fixes: 1.3.1 stops a turn parked on a tool call when OpenCode compacts its
+  chat (before, OpenCode compacted again after every step and re-ran the
+  pending tool call each time), and 1.3.5 has the chat's own model write the
+  summary instead of Haiku from a text copy cut to 400k characters. Both
+  local commits applied without conflicts and all 31 test files passed.
+- A third local commit, a cherry-pick of upstream's `917b293` (v1.3.3),
+  conflicted in that rebase and was skipped, since `v1.3.7` contains it.
 
 ## Check that it works
 
@@ -77,7 +77,7 @@ and the bridge logs `could not send a mid-turn message as user input` to
 
 ## Go back to the published plugin
 
-Set the `plugins` entry to `{"package": "@openchamber/opencode-claude@1.3.0"}`.
+Set the `plugins` entry to `{"package": "@openchamber/opencode-claude@1.3.7"}`.
 
 ## Limits
 
