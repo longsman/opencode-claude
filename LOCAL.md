@@ -1,9 +1,22 @@
 # Local build
 
 This checkout is upstream `openchamber/opencode-claude` at tag `v1.3.7` plus
-two commits on the branch `local/steering`. Nothing here is meant to go
-upstream; pushing is disabled (`git remote get-url --push origin` prints
-`no_push`).
+the local commits on the branch `local/steering` (two code commits, then notes
+commits). Nothing here is meant to go upstream. The branch is kept in the fork
+`longsman/opencode-claude`, which both machines use:
+
+| | Linux (`~/docker-apps/opencode-claude`) | Mac (`~/opt/opencode-claude`) |
+|---|---|---|
+| upstream (`openchamber`) | `origin` (push disabled: `no_push`) | `upstream` |
+| the fork | `fork` | `origin` |
+
+Below, `git fetch --tags origin` means the upstream remote of the machine you
+are on. After a rebase, `git push --force-with-lease` to the fork, then
+`git pull --ff-only` (or reset) on the other machine and rebuild there. The Mac
+config loads the checkout from `/Users/longsman/opt/opencode-claude`; the Mac
+has no systemd, so restart its service with `opencode2 service restart` from
+Terminal.app, not over SSH (the service would inherit the SSH session and could
+not read the login keychain that holds the Claude credentials).
 
 OpenCode v2 loads it through the `plugins` entry
 `{"package": "/home/longsman/docker-apps/opencode-claude"}` in
