@@ -7,7 +7,7 @@ upstream; pushing is disabled (`git remote get-url --push origin` prints
 
 OpenCode v2 loads it through the `plugins` entry
 `{"package": "/home/longsman/docker-apps/opencode-claude"}` in
-`~/.config/opencode/opencode.v2.json`. For a plugin directory OpenCode loads
+`~/.config/opencode/opencode.json`. For a plugin directory OpenCode loads
 `server.js`, which re-exports `dist/`.
 
 ## What the commits change
@@ -34,11 +34,22 @@ OpenCode v2 loads it through the `plugins` entry
 bun install && bun run build && bun run test
 ```
 
-`dist/` is not tracked, and OpenCode reads `dist/`. After a rebuild, restart
-the OpenCode server so it imports the new files. The restart ends every
-running session. From inside an OpenCode session, schedule it with
-`systemd-run --user`: a command started by the session is in the service's
-control group and dies with it.
+`dist/` is not tracked, and OpenCode reads `dist/`. A rebuild needs no server
+restart: OpenCode watches every file the plugin imports outside
+`node_modules` and, when the content of one changes, unloads the plugin and
+loads the new files. Checked on OpenCode 2.0.26 with a small test plugin on
+the scratch instance (2026-10-11): a changed imported file was live within a
+second in the same server process, and a file that fails to load leaves the
+previous copy running. Not yet tried with this plugin while a Claude turn
+runs. By its own design (`acquireProxy` / `releaseProxy` in `src/proxy.ts`) a
+turn waiting on a tool is picked up by the new copy within 10 seconds, and a
+response that is streaming finishes on the old one.
+
+The loader skips files under `node_modules`, so a changed dependency (a new
+SDK version) still needs a restart. A restart ends every running session.
+From inside an OpenCode session, schedule it with `systemd-run --user`: a
+command started by the session is in the service's control group and dies
+with it.
 
 ## Move to a newer upstream
 
