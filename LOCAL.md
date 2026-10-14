@@ -48,9 +48,11 @@ bun install && bun run build && bun run test
 ```
 
 `dist/` is not tracked, and OpenCode reads `dist/`. A rebuild needs no server
-restart: OpenCode watches every file the plugin imports outside
-`node_modules` and, when the content of one changes, unloads the plugin and
-loads the new files. Checked on OpenCode 2.0.26 with a small test plugin on
+restart: OpenCode watches the plugin's whole directory (`.git` included, so
+even `git status`, `commit` or `fetch` reloads every plugin once; seen on
+2026-10-14) and, on a change, unloads the plugin and loads the new files. The
+build deletes `dist/` first, so a plugin load can fail for a moment during a
+rebuild and succeed on the next change event. Checked on OpenCode 2.0.26 with a small test plugin on
 the scratch instance (2026-10-11): a changed imported file was live within a
 second in the same server process, and a file that fails to load leaves the
 previous copy running. Not yet tried with this plugin while a Claude turn
