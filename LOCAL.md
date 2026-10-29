@@ -3,21 +3,24 @@
 This checkout is upstream `openchamber/opencode-claude` at tag `v1.6.0` plus
 one code commit (the dependency pin) and the notes commits on the branch
 `local/steering`. Nothing here is meant to go upstream. The branch is kept in
-the fork `longsman/opencode-claude`, which every machine uses:
+the fork `longsman/opencode-claude`, which every machine uses.
 
-| | Linux (`~/docker-apps/opencode-claude`) | Mac (`~/opt/opencode-claude`) |
+Every machine has the checkout at `~/docker-apps/opencode-claude`: this host
+(minilongsman2), `minilongsman`, the MacBook and `omarchymac133` (its
+`opencode.service` is normally off). The remote names differ:
+
+| | Linux hosts | Mac |
 |---|---|---|
-| upstream (`openchamber`) | `origin` (push disabled: `no_push`) | `upstream` |
-| the fork | `fork` | `origin` |
+| upstream (`openchamber`) | `origin` (push disabled on minilongsman2: `no_push`) | `upstream` |
+| the fork | `fork` (`origin` on omarchymac133) | `origin` |
 
 Below, `git fetch --tags origin` means the upstream remote of the machine you
-are on. After a rebase, `git push --force-with-lease` to the fork, then
-`git fetch` and `git reset --hard <fork>/local/steering` on the other machines
-and rebuild there. The Mac config loads the checkout from
-`/Users/longsman/opt/opencode-claude`; the Mac has no systemd, so restart its
-service with `opencode2 service restart` from Terminal.app, not over SSH (the
-service would inherit the SSH session and could not read the login keychain
-that holds the Claude credentials).
+are on. After a rebase, `git push --force-with-lease` to the fork, then on each
+other machine `git fetch <fork remote> local/steering`, `git reset --hard
+FETCH_HEAD` and rebuild. The machines do not carry upstream's tags unless they
+fetched them, so `git describe` there can show an older tag. The Mac has no
+systemd, so restart its service from Terminal.app or the OpenCode app, not over SSH (the service would inherit the SSH session and could
+not read the login keychain that holds the Claude credentials).
 
 OpenCode v2 loads it through the `plugins` entry
 `{"package": "../../docker-apps/opencode-claude"}` in
